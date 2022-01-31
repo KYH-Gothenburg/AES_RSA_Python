@@ -47,7 +47,8 @@ def generate_rsa_keys(key_name, key_size=2048):
 def rsa_encrypt(rsa_key_name, message):
     recipient_key = RSA.importKey(open(f'./rsa_keys/{rsa_key_name}.pem').read())
     cipher_rsa = PKCS1_OAEP.new(recipient_key)
-    return cipher_rsa.encrypt(message.encode('utf-8'))
+    return cipher_rsa.encrypt(message)
+    # return cipher_rsa.encrypt(message.encode('utf-8'))
 
 
 def rsa_decrypt(cipher, recipient_key):
@@ -58,19 +59,28 @@ def rsa_decrypt(cipher, recipient_key):
             print(f'No key file named {recipient_key}.pem found')
             return ""
     cipher_rsa = PKCS1_OAEP.new(recipient_key)
-    return cipher_rsa.decrypt(cipher).decode('utf-8')
+    return cipher_rsa.decrypt(cipher)
+    # return cipher_rsa.decrypt(cipher).decode('utf-8')
 
 
 def encrypt_message(message, recipient_rsa_key_name):
     # Encrypt the message using AES
+    aes_key, aes_cipher, aes_nonce, aes_tag = aes_encrypt(message)
+
     # Encrypt the generated AES key using RSA
-    pass
+    encrypted_aes_key = rsa_encrypt(recipient_rsa_key_name, aes_key)
+
+    return (encrypted_aes_key, aes_nonce, aes_tag, aes_cipher)
 
 
-def decrypt_message():
+def decrypt_message(priv_key_name, encrypted_data):
+    # Extract encrypted data
+    encrypted_aes_key, aes_nonce, aes_tag, aes_cipher = encrypted_data
     # Decrypt the AES key using RSA
+    aes_key = rsa_decrypt(encrypted_aes_key, priv_key_name)
     # Decrypt the message using AES
-    pass
+    plaintext = aes_decrypt(aes_key, aes_cipher, aes_nonce, aes_tag)
+    return plaintext
 
 
 def main():
@@ -78,9 +88,22 @@ def main():
     # message = aes_decrypt(aes_key, aes_cipher, aes_nonce, aes_tag)
     # print(message)
     # generate_rsa_keys('bob')
-    rsa_cipher = rsa_encrypt('carl_public', 'Dear Alice. Come to the pub tonight!')
-    message = rsa_decrypt(rsa_cipher, 'carl_private')
-    print(message)
+    # rsa_cipher = rsa_encrypt('carl_public', 'Dear Alice. Come to the pub tonight!')
+    # message = rsa_decrypt(rsa_cipher, 'carl_private')
+    # print(message)
+
+    # Sender code
+    message = input('Message to encrypt: ')
+    recipient_key_name = input('Public key name of recipient: ')
+    filename = input('Filename for encrypted data: ')
+    encrypted_data = encrypt_message(message, recipient_key_name)
+    store_encrypted_data(filename, encrypted_data)
+
+    # Receiver code
+    priv_key = input('Private key name to be used for encryption: ')
+    plaintext_message = decrypt_message(priv_key, encrypted_data)
+    print(plaintext_message)
+
 
 
 if __name__ == '__main__':
