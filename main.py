@@ -83,6 +83,19 @@ def decrypt_message(priv_key_name, encrypted_data):
     return plaintext
 
 
+def store_encrypted_data(filename, encrypted_data):
+    with open(f'./encrypted_data/{filename}.bin', 'wb') as out_file:
+        for data in encrypted_data:
+            out_file.write(data)
+
+
+def read_encrypted_data(filename, rsa_key_name):
+    priv_rsa_key = RSA.importKey(open(f'./rsa_keys/{rsa_key_name}.pem').read())
+    with open(f'./encrypted_data/{filename}.bin', 'rb') as in_file:
+        aes_key, aes_nonce, aes_tag, ciphertext = \
+            [in_file.read(data) for data in (priv_rsa_key.size_in_bytes(), 16, 16, -1)]
+    return (aes_key, aes_nonce, aes_tag, ciphertext)
+
 def main():
     # aes_key, aes_cipher, aes_nonce, aes_tag = aes_encrypt('This is my super secret')
     # message = aes_decrypt(aes_key, aes_cipher, aes_nonce, aes_tag)
@@ -93,6 +106,7 @@ def main():
     # print(message)
 
     # Sender code
+    print("Sender")
     message = input('Message to encrypt: ')
     recipient_key_name = input('Public key name of recipient: ')
     filename = input('Filename for encrypted data: ')
@@ -100,7 +114,10 @@ def main():
     store_encrypted_data(filename, encrypted_data)
 
     # Receiver code
+    print("Receiver")
     priv_key = input('Private key name to be used for encryption: ')
+    filename = input('Name of encrypted file: ')
+    encrypted_data = read_encrypted_data(filename, priv_key)
     plaintext_message = decrypt_message(priv_key, encrypted_data)
     print(plaintext_message)
 
